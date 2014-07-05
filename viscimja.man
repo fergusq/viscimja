@@ -1,0 +1,56 @@
+.TH viscimja 1 "3.7.2014" "version 0.1"
+.SH NAME
+viscimja - A system card interpreter machine in Java.
+
+.SH SYNOPSIS
+.B viscimja
+.RI "[" "options" "] [" "cards" "]"
+
+.SH DESCRIPTION
+VISCIM-JA is a portable SYCPOL interpreter written in Java.
+
+The interpretation process is simple.
+.RB "First, the " "viscimja " "command "
+reads all cards and files in order specified.
+.RB "Then it scans all modules and tries to locate a " "MAIN " "procedure."
+If many modules with such procedure were given to the program,
+an error is raised. If the procedure was not found, the program
+terminates silently.
+
+.RB "This interpreter ignores " "OPEN STREAM " "and " "CLOSE STREAM " "declarations."
+
+VISCIM-JA supports filesystem access. See
+VISCIM-JA-SYCPOL manual for more information.
+
+The only card type
+VISCIM-JA supports is the Standard System Card I (SSC-M1).
+If an input card is too big or has illegal card declaration,
+the program fails.
+.RB "Option " "--check-cards " "can be used to perform"
+only the card format checking procedure.
+
+.RB "Option " "-f file "
+is used to use a file as a part of a program. The file directory
+must contain cards with numerical names.
+
+.SH OPTIONS
+.IP "--check-cards"
+Checks that cards follow SSC-M1 standard and exits.
+.IP "--check-declarations"
+Checks that the input code follows the SYCPOL declaration syntax and exits.
+.IP "-f file"
+Reads all cards in a file. May occur multiple times.
+.IP "-V --verbose"
+Gives more detailed error messages.
+.IP "--debug"
+Enables debug mode.
+.IP "-v --version"
+Prints the version string and exits.
+.IP "-h --help"
+Prints the help string and exits.
+
+.SH BUGS
+No known bugs.
+
+.SH AUTHOR
+Fergusq <fergusq@kaivos.org>
