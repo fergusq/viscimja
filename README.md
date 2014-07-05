@@ -7,6 +7,7 @@ Features
 ========
 
 * Full compatibility with Standard SYCPOL
+* MODULE statements and other essential features from RS-SYCPOL
 * Support for filesystem access
 * Advanced debug mode
 * Verbose error messages
@@ -22,7 +23,7 @@ $ mkdir classes
 $ make
 ```
 
-Or if you don't can or want use Makefiles:
+Or if you aren't able or would rather not use Makefiles:
 ```
 $ java -classpath classes -sourcepath src src/sycpol/Sycpol.java -d classes
 ```
