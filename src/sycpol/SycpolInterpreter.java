@@ -15,6 +15,37 @@ import java.io.IOException;
 
 class SycpolInterpreter {
 
+    public boolean checkTypes(String from, String to) {
+	if (from.equals(to)) return true;
+	if (from.equals(SycpolParser.INTEGER8)
+	    && to.equals(SycpolParser.INTEGER16)) return true;
+	if (to.equals(SycpolParser.STREAM)
+	    && (
+		from.equals(SycpolParser.IOSTREAM)
+		|| from.equals(SycpolParser.ISTREAM)
+		|| from.equals(SycpolParser.OSTREAM)
+		)) return true;
+	return false;
+    }
+
+    public String simpleType(String typename) {
+	if (typename.startsWith("+")) return "LIST";
+	if (typename.startsWith("%")) return typename;
+	if (typename.equals(SycpolParser.INTEGER16)
+	    || typename.equals(SycpolParser.INTEGER8))
+	    return "INTEGER";
+	if (typename.equals(SycpolParser.STRING32)
+	    || typename.equals(SycpolParser.STRING16)
+	    || typename.equals(SycpolParser.STRING8))
+	    return "STRING";
+	if (typename.equals(SycpolParser.IOSTREAM)
+	    || typename.equals(SycpolParser.ISTREAM)
+	    || typename.equals(SycpolParser.OSTREAM)
+	    || typename.equals(SycpolParser.STREAM))
+	    return "STREAM";
+	return typename;
+    }
+
     public class SycpolObject {
 	private HashMap<String, SycpolObject> fields = new HashMap<>();
 	private ArrayList<SycpolObject> list = new ArrayList<>();
@@ -25,6 +56,8 @@ class SycpolInterpreter {
 	private InputStream value_in;
 
 	private String type;
+	private Structure struct;
+	private HashMap<String, String> fieldtypes = new HashMap<>();
 
 	SycpolObject(short val) {
 	    this.type = SycpolParser.INTEGER16;
@@ -66,6 +99,13 @@ class SycpolInterpreter {
 	    if (type.equals(SycpolParser.OSTREAM)
 		&& in != null)
 		Sycpol.exit("TYPE ERROR: OPEN INPUT STREAM.");
+	}
+
+	SycpolObject(String type, Structure struct) {
+	    this.type = type;
+	    this.struct = struct;
+	    for (Field f : struct.fields)
+		this.fieldtypes.put(f.name, f.datatype);
 	}
 
 	SycpolObject(String type) {
@@ -136,7 +176,12 @@ class SycpolInterpreter {
 	    */
 
 	    // fields and lists
-	    if (this.isStructure()) return this.fields.get(name);
+	    if (this.isStructure()) {
+		if (this.fieldtypes.get(name) == null) {
+		    Sycpol.exit("NAME ERROR: FIELD NOT FOUND.", "NAME: " + name, "STRUCTURE: " + this.type);
+		}
+		return this.fields.get(name);
+	    }
 
 	    if (this.isList()) {
 		switch (name) {
@@ -156,22 +201,35 @@ class SycpolInterpreter {
 		}
 	    }
 
-	    Sycpol.exit("TYPE ERROR: STRUCTURE EXPECTED.");
+	    Sycpol.exit("TYPE ERROR: STRUCTURE EXPECTED.",
+			"GOT: " + this.type);
 	    return null;
 	}
 
-	public void setField(String index, SycpolObject to) {
+	public void setField(String name, SycpolObject to) {
 	    if (!this.isStructure())
-		Sycpol.exit("TYPE ERROR: STRUCTURE EXPECTED.");
+		Sycpol.exit("TYPE ERROR: STRUCTURE EXPECTED.",
+			    "GOT: " + this.type);
 
-	    this.fields.put(index, to);
+	    if (this.fieldtypes.get(name) == null) {
+		Sycpol.exit("NAME ERROR: FIELD NOT FOUND.", "NAME: " + name, "STRUCTURE: " + this.type);
+	    }
+
+	    if (!checkTypes(to.type, this.fieldtypes.get(name)))
+		Sycpol.exit("TYPE ERROR: " + simpleType(this.fieldtypes.get(name)) + "EXPECTED.",
+			    "EXPECTED: " + this.fieldtypes.get(name),
+			    "GOT: " + to.type);
+
+	    this.fields.put(name, to);
 	}
 	
 	public SycpolObject getCharAt(SycpolObject at) {
 	    SycpolObject in = this;
 
-	    if (!at.isInteger()) Sycpol.exit("TYPE ERROR: INTEGER EXPECTED.");
-	    if (!in.isString()) Sycpol.exit("TYPE ERROR: STRING EXPECTED.");
+	    if (!at.isInteger()) Sycpol.exit("TYPE ERROR: INTEGER EXPECTED.",
+					     "GOT: " + this.type);
+	    if (!in.isString()) Sycpol.exit("TYPE ERROR: STRING EXPECTED.",
+					    "GOT: " + this.type);
 
 	    if (at.integerValue() >= in.value_str.length())
 		Sycpol.exit("INDEX OVERFLOW ERROR.");
@@ -182,8 +240,10 @@ class SycpolInterpreter {
 	public SycpolObject getElementAt(SycpolObject at) {
 	    SycpolObject in = this;
 
-	    if (!at.isInteger()) Sycpol.exit("TYPE ERROR: INTEGER EXPECTED.");
-	    if (!in.isList()) Sycpol.exit("TYPE ERROR: STRING EXPECTED.");
+	    if (!at.isInteger()) Sycpol.exit("TYPE ERROR: INTEGER EXPECTED.",
+					     "GOT: " + this.type);
+	    if (!in.isList()) Sycpol.exit("TYPE ERROR: STRING EXPECTED.",
+					  "GOT: " + this.type);
 
 	    if (at.integerValue() >= in.list.size())
 		Sycpol.exit("INDEX OVERFLOW ERROR.");
@@ -192,20 +252,24 @@ class SycpolInterpreter {
 	}
 
 	public void add(SycpolObject val) {
-	    if (!this.isList()) Sycpol.exit("TYPE ERROR: LIST EXPECTED.");
+	    if (!this.isList()) Sycpol.exit("TYPE ERROR: LIST EXPECTED.",
+					    "GOT: " + this.type);
 
 	    this.list.add(val);
 	}
 
 	public SycpolObject remove() {
-	    if (!this.isList()) Sycpol.exit("TYPE ERROR: LIST EXPECTED.");
+	    if (!this.isList()) Sycpol.exit("TYPE ERROR: LIST EXPECTED.",
+					    "GOT: " + this.type);
 
 	    return this.list.remove(this.list.size()-1);
 	}
 
 	public void send(SycpolObject val) {
 	    if (!this.isOStream())
-		Sycpol.exit("TYPE ERROR: OUTPUT STREAM EXPECTED.");
+		Sycpol.exit("TYPE ERROR: STREAM EXPECTED.",
+			    "EXPECTED: " + "INPUT STREAM",
+			    "GOT: " + this.type);
 	    if (!val.isByte()) Sycpol.exit("TYPE ERROR: INTEGER 8 EXPECTED.");
 
 	    try {
@@ -216,7 +280,9 @@ class SycpolInterpreter {
 	}
 
 	public SycpolObject next() {
-	    if (!this.isIStream()) Sycpol.exit("TYPE ERROR: STREAM EXPECTED.");
+	    if (!this.isIStream()) Sycpol.exit("TYPE ERROR: STREAM EXPECTED.",
+					       "EXPECTED: " + "INPUT STREAM",
+					       "GOT: " + this.type);
 	    
 	    try {
 		return new SycpolObject((byte) this.value_in.read());
@@ -228,13 +294,15 @@ class SycpolInterpreter {
 	}
 
 	public void increment() {
-	    if (!this.isInteger()) Sycpol.exit("TYPE ERROR: INTEGER EXPECTED.");
+	    if (!this.isInteger()) Sycpol.exit("TYPE ERROR: INTEGER EXPECTED.",
+					       "GOT: " + this.type);
 	    if (this.isByte()) this.value_i8++;
 	    else this.value_i16++;
 	}
 
 	public void decrement() {
-	    if (!this.isInteger()) Sycpol.exit("TYPE ERROR: INTEGER EXPECTED.");
+	    if (!this.isInteger()) Sycpol.exit("TYPE ERROR: INTEGER EXPECTED.",
+					       "GOT: " + this.type);
 	    if (this.isByte()) this.value_i8--;
 	    else this.value_i16--;
 	}
@@ -251,9 +319,28 @@ class SycpolInterpreter {
 	    return n;
 	}
 
+	public void change(SycpolObject to) {
+	    if (!checkTypes(to.type, this.type))
+		Sycpol.exit("TYPE ERROR: " + simpleType(this.type) + " EXPECTED.",
+			    "EXPECTED: " + this.type,
+			    "GOT: " + to.type);
+
+	    this.value_i8 = to.value_i8;
+	    this.value_i16 = to.value_i16;
+	    this.value_str = to.value_str;
+	    this.value_in = to.value_in;
+	    this.value_out = to.value_out;
+	    this.fields = to.fields;
+	    this.list = to.list;
+	    this.struct = to.struct;
+	    this.fieldtypes = to.fieldtypes;
+	}
+
 	public boolean equals(SycpolObject obj) {
-	    if (this.isInteger() && obj.isInteger()) return this.integerValue() == obj.integerValue();
-	    if (this.isString() && obj.isString()) return this.stringValue().equals(obj.stringValue());
+	    if (this.isInteger() && obj.isInteger())
+		return this.integerValue() == obj.integerValue();
+	    if (this.isString() && obj.isString())
+		return this.stringValue().equals(obj.stringValue());
 	    return this == obj;
 	}
     }
@@ -458,14 +545,13 @@ class SycpolInterpreter {
 			SycpolObject obj;
 			obj = localvariables.get(var);
 			if (obj != null) {
-			    // TODO DO SOME TYPE CHECKING
-			    localvariables.put(var, to.copy());
+			    obj.change(to.copy());
 			}
 			else {
 			    obj = this.variables.get(var);
 			    if (obj == null)
 				Sycpol.exit("NAME ERROR: VARIABLE NOT FOUND.", "NAME: " + var);
-			    this.variables.put(var, to.copy());
+			    obj.change(to.copy());
 			}
 		    }
 		    

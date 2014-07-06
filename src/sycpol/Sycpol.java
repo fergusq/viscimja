@@ -57,9 +57,12 @@ public class Sycpol {
 			"NAME: " + filepath, "PATH: " + file.getAbsolutePath());
 
 	ArrayList<String> acards = new ArrayList<>(Arrays.asList(file.list()));
-	for (int i = 0;;i++) {
-	    if (acards.contains(""+i))
+
+	for (int i = 1; true; i++) {
+	    if (acards.contains(""+i)) {
 		cards.loadCard(readFile(file.getAbsolutePath()+"/"+i));
+		if (debug) System.err.println("LOADING " + file.getAbsolutePath()+"/"+i);
+	    }
 	    else break;
 	}
     }
