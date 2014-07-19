@@ -19,11 +19,10 @@ VISCIM-JA requires Java 7.
 
 Following should work:
 ```
-$ mkdir classes
-$ make
+$ ant
 ```
 
-Or if you aren't able or would rather not use Makefiles:
+Or if you aren't able or would rather not use Ant:
 ```
 $ java -classpath classes -sourcepath src src/sycpol/Sycpol.java -d classes
 ```
