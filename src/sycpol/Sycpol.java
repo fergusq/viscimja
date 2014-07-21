@@ -37,7 +37,8 @@ public class Sycpol {
 	    }
 	    System.err.println(str);
 
-	    for (String m : more) System.err.println(m);
+	    if (verbose)
+		for (String m : more) System.err.println(m);
 
 	    System.exit(1);
 	} catch (ArrayIndexOutOfBoundsException ex) {
