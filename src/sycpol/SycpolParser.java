@@ -49,7 +49,7 @@ public class SycpolParser {
 	if (dt.equals("")) {
 	    if (line.lastIndexOf("%") != -1)
 		dt = line.substring(line.lastIndexOf("%"), line.length());
-	    else Sycpol.exit("TYPE ERROR: UNSUPPORTED TYPE. "+line);
+	    else Sycpol.exit("TYPE ERROR: UNSUPPORTED TYPE. ", "TYPE:\n"+line);
 	}
 	String dtl = "+" + dt;
 	while (line.endsWith(dtl)) {

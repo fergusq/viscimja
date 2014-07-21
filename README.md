@@ -31,3 +31,9 @@ Usage
 =====
 
 See manpage for full documentation.
+
+Use following command to run the hello world:
+
+```
+viscimja -f examples/stdio -f examples/hello
+```
